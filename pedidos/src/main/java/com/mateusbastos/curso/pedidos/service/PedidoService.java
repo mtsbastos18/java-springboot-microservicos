@@ -1,9 +1,12 @@
 package com.mateusbastos.curso.pedidos.service;
 
 import com.mateusbastos.curso.pedidos.client.ServicoBancarioClient;
+import com.mateusbastos.curso.pedidos.model.DadosPagamento;
+import com.mateusbastos.curso.pedidos.model.NovoPagamento;
 import com.mateusbastos.curso.pedidos.model.PagamentoCallback;
 import com.mateusbastos.curso.pedidos.model.Pedido;
 import com.mateusbastos.curso.pedidos.model.enums.StatusPedido;
+import com.mateusbastos.curso.pedidos.model.exception.ItemNaoEncontradoException;
 import com.mateusbastos.curso.pedidos.repository.ItemPedidoRepository;
 import com.mateusbastos.curso.pedidos.repository.PedidoRepository;
 import com.mateusbastos.curso.pedidos.validator.PedidoValidator;
@@ -78,4 +81,25 @@ public class PedidoService {
             pedido.setObservacoes(dadosPagamento.getObservacoes());
         }
     }
+
+    @Transactional
+    public void adicionarNovoPagamento(NovoPagamento pagamento) {
+        // Lógica para adicionar um novo pagamento ao pedido
+        var pedidoOpt = pedidoRepository.findById(pagamento.getCodigoPedido());
+
+        pedidoOpt.ifPresentOrElse(
+                pedido -> {
+                    pedido.setDadosPagamento(pagamento.getDadosPagamento());
+                    pedido.setStatus(StatusPedido.REALIZADO);
+                    pedido.setObservacoes("Novo pagamento adicionado.");
+                    enviarSolicitacaoPagamento(pedido);
+                    pedidoRepository.save(pedido);
+                },
+                () -> {
+                    log.error("Pedido não encontrado para o código %d".formatted(pagamento.getCodigoPedido()));
+                    throw new ItemNaoEncontradoException("Pedido não encontrado para o código fornecido.");
+                }
+        );
+    }
+
 }

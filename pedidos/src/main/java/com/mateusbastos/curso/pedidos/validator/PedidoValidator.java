@@ -6,13 +6,11 @@ import com.mateusbastos.curso.pedidos.client.Representation.ClienteRepresentatio
 import com.mateusbastos.curso.pedidos.client.Representation.ProdutoRepresentation;
 import com.mateusbastos.curso.pedidos.model.ItemPedido;
 import com.mateusbastos.curso.pedidos.model.Pedido;
-import com.mateusbastos.curso.pedidos.model.enums.exception.ValidationException;
+import com.mateusbastos.curso.pedidos.model.exception.ValidationException;
 import feign.FeignException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
-
-import java.util.List;
 
 import static java.util.Objects.isNull;
 

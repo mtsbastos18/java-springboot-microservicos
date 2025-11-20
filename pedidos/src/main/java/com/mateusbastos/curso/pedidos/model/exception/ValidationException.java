@@ -1,4 +1,4 @@
-package com.mateusbastos.curso.pedidos.model.enums.exception;
+package com.mateusbastos.curso.pedidos.model.exception;
 
 import lombok.Getter;
 

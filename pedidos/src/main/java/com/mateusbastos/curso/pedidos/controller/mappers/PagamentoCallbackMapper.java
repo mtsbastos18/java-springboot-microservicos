@@ -8,9 +8,5 @@ import org.mapstruct.factory.Mappers;
 @Mapper(componentModel = "spring")
 public interface PagamentoCallbackMapper {
 
-    @Mapping(source="codigo", target="codigo")
-    @Mapping(source="chavePagamento", target="chavePagamento")
-    @Mapping(source="status", target="status")
-    @Mapping(source="observacoes", target="observacoes")
     PagamentoCallback map(RecebimentoCallbackPagamentoDTO dto);
 }
