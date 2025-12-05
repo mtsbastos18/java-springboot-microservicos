@@ -1,5 +1,6 @@
 package com.mateusbastos.curso.pedidos.model;
 
+import com.mateusbastos.curso.pedidos.client.Representation.ClienteRepresentation;
 import com.mateusbastos.curso.pedidos.controller.dto.DadosPagamentoDTO;
 import com.mateusbastos.curso.pedidos.model.enums.StatusPedido;
 import jakarta.persistence.*;
@@ -52,4 +53,7 @@ public class Pedido {
 
     @OneToMany(mappedBy = "pedido")
     private List<ItemPedido> itens;
+
+    @Transient
+    private ClienteRepresentation dadosCliente;
 }

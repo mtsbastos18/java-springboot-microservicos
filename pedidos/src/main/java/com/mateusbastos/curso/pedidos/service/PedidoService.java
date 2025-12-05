@@ -1,19 +1,25 @@
 package com.mateusbastos.curso.pedidos.service;
 
+import com.mateusbastos.curso.pedidos.client.ClientesClient;
+import com.mateusbastos.curso.pedidos.client.ProdutosClient;
+import com.mateusbastos.curso.pedidos.client.Representation.ClienteRepresentation;
+import com.mateusbastos.curso.pedidos.client.Representation.ProdutoRepresentation;
 import com.mateusbastos.curso.pedidos.client.ServicoBancarioClient;
-import com.mateusbastos.curso.pedidos.model.DadosPagamento;
-import com.mateusbastos.curso.pedidos.model.NovoPagamento;
-import com.mateusbastos.curso.pedidos.model.PagamentoCallback;
-import com.mateusbastos.curso.pedidos.model.Pedido;
+import com.mateusbastos.curso.pedidos.model.*;
 import com.mateusbastos.curso.pedidos.model.enums.StatusPedido;
 import com.mateusbastos.curso.pedidos.model.exception.ItemNaoEncontradoException;
+import com.mateusbastos.curso.pedidos.publisher.PagamentoPublisher;
 import com.mateusbastos.curso.pedidos.repository.ItemPedidoRepository;
 import com.mateusbastos.curso.pedidos.repository.PedidoRepository;
 import com.mateusbastos.curso.pedidos.validator.PedidoValidator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java.util.Optional;
 
 @Slf4j
 @Service
@@ -24,6 +30,9 @@ public class PedidoService {
     private final ItemPedidoRepository itemPedidoRepository;
     private final PedidoValidator pedidoValidator;
     private final ServicoBancarioClient servicoBancarioClient;
+    private final ClientesClient apiClientes;
+    private final ProdutosClient apiProdutos;
+    private final PagamentoPublisher pagamentoPublisher;
 
     @Transactional
     public Pedido criarPedido(Pedido pedido) {
@@ -61,6 +70,9 @@ public class PedidoService {
                 pedido -> {
                     aplicarStatusPagamento(pedido, dadosPagamento);
                     pedidoRepository.save(pedido);
+                    carregarDadosCliente(pedido);
+                    carregarItensPedido(pedido);
+                    pagamentoPublisher.publicar(pedido);
                 },
                 () -> log.error(construirMensagemPedidoNaoEncontrado(dadosPagamento))
         );
@@ -100,6 +112,40 @@ public class PedidoService {
                     throw new ItemNaoEncontradoException("Pedido não encontrado para o código fornecido.");
                 }
         );
+    }
+
+    public Optional<Pedido> carregarDadosCompletosPedido(Long codigoPedido) {
+        var pedidoOpt = pedidoRepository.findById(codigoPedido);
+        pedidoOpt.ifPresent(
+                pedido -> {
+                    carregarDadosCliente(pedido);
+                    carregarItensPedido(pedido);
+                }
+        );
+
+        return pedidoOpt;
+    }
+
+    private void carregarDadosCliente(Pedido pedido) {
+        // Lógica para carregar os dados do cliente associado ao pedido
+        // Exemplo: pedido.setDadosCliente(clienteClient.buscarClientePorCodigo(pedido.getCodigoCliente()));
+        Long codigoCliente = pedido.getCodigoCliente();
+        var dadosClienteResponse = apiClientes.obterDados(codigoCliente);
+        pedido.setDadosCliente(dadosClienteResponse.getBody());
+    }
+
+    private void carregarItensPedido(Pedido pedido) {
+        // Lógica para carregar os itens do pedido
+        List<ItemPedido> itens = itemPedidoRepository.findByPedidoCodigo(pedido.getCodigo());
+        pedido.setItens(itens);
+        pedido.getItens().forEach(this::carregarDadosProduto);
+    }
+
+    private void carregarDadosProduto(ItemPedido item) {
+        Long codigoProduto = item.getCodigoProduto();
+        ResponseEntity<ProdutoRepresentation> dadosProdutoResponse = apiProdutos.obterDados(codigoProduto);
+        assert dadosProdutoResponse.getBody() != null;
+        item.setNome(dadosProdutoResponse.getBody().nome());
     }
 
 }
